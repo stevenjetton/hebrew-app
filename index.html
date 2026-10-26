@@ -1,0 +1,685 @@
+<title>Shoresh</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Hebrew:wght@400;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one-column phone app with a bottom tab bar; the pointed Hebrew is the hero, stem markers in argaman red, conjugation prefixes in gold */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #e2e7ee;
+  --fg: #182030;
+  --muted: #586276;
+  --line: #cfd6e0;
+  --accent: #253f86;       /* techelet blue: UI */
+  --accent-ink: #ffffff;
+  --accent-soft: #dbe3f6;
+  --mark: #9b2448;         /* argaman: stem markers */
+  --pre: #8a5a00;          /* gold: conjugation prefixes */
+  --good: #1c7a52; --good-soft: #d6efe3; --bad: #b2362b; --bad-soft: #f7dcd8;
+  --font-he: "Noto Serif Hebrew", "SBL Hebrew", "Times New Roman", serif;
+  --font-display: "Gentium Book Plus", "Gentium Plus", Georgia, serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f131b; --surface: #171d29; --surface-2: #212938; --fg: #e8ecf3; --muted: #9aa4b8; --line: #2c3547;
+    --accent: #8fa8f0; --accent-ink: #0d1324; --accent-soft: #22305a; --mark: #f08aa5; --pre: #e6b45a;
+    --good: #55cf98; --good-soft: #163428; --bad: #ff8b7d; --bad-soft: #3c1f1f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f131b; --surface: #171d29; --surface-2: #212938; --fg: #e8ecf3; --muted: #9aa4b8; --line: #2c3547;
+  --accent: #8fa8f0; --accent-ink: #0d1324; --accent-soft: #22305a; --mark: #f08aa5; --pre: #e6b45a;
+  --good: #55cf98; --good-soft: #163428; --bad: #ff8b7d; --bad-soft: #3c1f1f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(84px + env(safe-area-inset-bottom, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 640px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.4rem; font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 700; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 2px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--pre); outline-offset: 2px; }
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.muted { color: var(--muted); }
+.small { font-size: 0.88rem; }
+.he { font-family: var(--font-he); direction: rtl; unicode-bidi: isolate; font-weight: 400; }
+.tr { font-family: var(--font-display); font-style: italic; }
+.m { color: var(--mark); font-weight: 700; }
+.p { color: var(--pre); font-weight: 700; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; }
+.brand .he { font-size: 1.5rem; color: var(--mark); }
+.pill { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+nav.tabs button { background: none; border: 0; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; font-size: 0.74rem; font-weight: 700; color: var(--muted); }
+nav.tabs button .he { font-size: 1.25rem; line-height: 1.2; }
+nav.tabs button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+
+main section { display: grid; gap: 16px; padding-block: 6px 24px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 13px; font-size: 0.92rem; font-weight: 700; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; background: var(--accent); color: var(--accent-ink); min-height: 46px; }
+.btn.ghost { background: var(--surface-2); color: var(--fg); }
+.btn.block { width: 100%; }
+.feedback { padding: 12px 14px; border-radius: 12px; font-weight: 700; }
+.feedback.ok { background: var(--good-soft); color: var(--good); }
+.feedback.no { background: var(--bad-soft); color: var(--bad); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; }
+
+.root-card { display: grid; gap: 4px; justify-items: start; }
+.root-card .he { font-size: 3rem; line-height: 1.1; letter-spacing: 0.08em; }
+.stem-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.stem-head .he { font-size: 1.6rem; }
+.forms { display: grid; gap: 4px; }
+.form-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.form-row:last-child { border-bottom: 0; }
+.form-row .he { font-size: 2rem; line-height: 1.3; grid-row: span 2; text-align: right; min-width: 6.5rem; }
+.form-row .na { font-family: var(--font-body); direction: ltr; font-size: 0.9rem; color: var(--muted); grid-row: span 2; min-width: 6.5rem; text-align: right; }
+
+.slots { display: grid; gap: 8px; }
+.slot { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; border: 2px dashed var(--line); background: var(--surface); border-radius: 14px; padding: 10px 14px; min-height: 66px; }
+.slot.active { border-color: var(--accent); border-style: solid; }
+.slot.filled { border-style: solid; border-color: var(--good); background: var(--good-soft); cursor: default; }
+.slot .he { font-size: 1.7rem; }
+.slot .q { font-size: 1.4rem; color: var(--muted); }
+.pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.pool .chip { font-size: 1.5rem; padding: 6px 14px; }
+.pool .chip.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table.para { border-collapse: collapse; min-width: 100%; }
+table.para th, table.para td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: right; white-space: nowrap; }
+table.para thead th { position: sticky; top: 0; background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; padding: 8px 10px; }
+table.para tbody th { font-size: 0.78rem; color: var(--muted); text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+table.para td .he { font-size: 1.35rem; }
+table.para td.on { background: var(--accent-soft); }
+.cellbtn { background: none; border: 0; padding: 4px 2px; border-radius: 8px; }
+.detail-he { font-size: 2rem; }
+.opts.pgn { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.wrapchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.focus summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.linkbtn { background: none; border: 0; color: var(--accent); font-weight: 700; padding: 2px 4px; }
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.opt .he { font-size: 1.15rem; }
+.opt.right { background: var(--good-soft); border-color: var(--good); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.big-he { font-size: 3rem; line-height: 1.3; text-align: center; }
+
+.flash { min-height: 230px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: grid; align-content: center; justify-items: center; gap: 8px; padding: 24px; text-align: center; cursor: pointer; }
+.flash.back { background: var(--accent-soft); border-color: transparent; }
+.flash .he { font-size: 3.2rem; line-height: 1.3; }
+.rate { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vocab-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.vocab-row .he { font-size: 1.6rem; grid-row: span 2; min-width: 4.5rem; text-align: right; }
+.vocab-row:last-child { border-bottom: 0; }
+ul.src { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .slot, .chip, .opt { transition: background .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="he" lang="he">שֹׁרֶשׁ</span>Shoresh</div>
+    <span class="pill" id="scorePill">0 today</span>
+  </header>
+  <main id="view" aria-live="polite"></main>
+</div>
+<nav class="tabs" aria-label="Sections">
+  <button data-tab="stems"><span class="he" lang="he">בִּנְיָנִים</span>Stems</button>
+  <button data-tab="drill"><span class="he" lang="he">תַּרְגִּיל</span>Drill</button>
+  <button data-tab="vocab"><span class="he" lang="he">מִלִּים</span>Vocab</button>
+  <button data-tab="sources"><span class="he" lang="he">מְקוֹרוֹת</span>Sources</button>
+</nav>
+
+<script>
+"use strict";
+/* ================= SOURCES ================= */
+const SRC = {
+  logos: ["Logos Bible Software, Hebrew Paradigms chart (strong verbs)", "https://www.logos.com/product/6338/greek-and-hebrew-paradigm-charts"],
+  bbh12: ["Pratico & Van Pelt, Basics of Biblical Hebrew, ch. 12 (verb introduction)", "https://hebrew.billmounce.com/BasicsBiblicalHebrew-12.pdf"],
+  bbh26: ["Pratico & Van Pelt, Basics of Biblical Hebrew, ch. 26 (Piel)", "https://hebrew.billmounce.com/BasicsBiblicalHebrew-26.pdf"],
+  bbh30: ["Pratico & Van Pelt, Basics of Biblical Hebrew, ch. 30 (Hiphil)", "https://hebrew.billmounce.com/BasicsBiblicalHebrew-30.pdf"],
+  bbh33: ["Pratico & Van Pelt, Basics of Biblical Hebrew, ch. 33 (Hophal)", "https://hebrew.billmounce.com/BasicsBiblicalHebrew-33.pdf"],
+  bbh34: ["Pratico & Van Pelt, Basics of Biblical Hebrew, ch. 34 (Hithpael)", "https://hebrew.billmounce.com/BasicsBiblicalHebrew-34.pdf"],
+  uhgS:  ["unfoldingWord Hebrew Grammar: Stem formation", "https://uhg.readthedocs.io/en/latest/stem.html"],
+  uhgN:  ["unfoldingWord Hebrew Grammar: Niphal", "https://uhg.readthedocs.io/en/latest/stem_niphal.html"],
+  uhgP:  ["unfoldingWord Hebrew Grammar: Piel", "https://uhg.readthedocs.io/en/latest/stem_piel.html"],
+  uhgH:  ["unfoldingWord Hebrew Grammar: Hiphil", "https://uhg.readthedocs.io/en/latest/stem_hiphil.html"],
+  uhgT:  ["unfoldingWord Hebrew Grammar: Hithpael", "https://uhg.readthedocs.io/en/latest/stem_hithpael.html"],
+  uhgI:  ["unfoldingWord Hebrew Grammar: Infinitive construct", "https://uhg.readthedocs.io/en/latest/infinitive_construct.html"],
+  beck:  ["Beckman, Reading Biblical Hebrew: Infinitive construct", "https://hebrewsyntax.org/rbh1/RBH_19_infinitive_construct.pdf"],
+  ginH:  ["Ginoskos: Causative verbs (Hiphil, Hophal)", "https://ginoskos.com/biblical-hebrew/causative-verbs-hiphil-hophal"],
+  crv:   ["Bratcher, Hebrew verb stems chart (CRI/Voice)", "https://mail.crivoice.org/pdf/heb-stems.pdf"],
+  ginV:  ["Ginoskos: Hebrew basic vocabulary (700 most frequent words)", "https://ginoskos.com/exercises?tags=82&action=detail&id=26&l=3&p%5Bsize%5D=64"],
+  ah14:  ["Ancient Hebrew Research Center: Learn Biblical Hebrew, lesson 14", "https://www.ancient-hebrew.org/learn/learn-biblical-hebrew-14.htm"],
+  eheb:  ["eHebrew.net: Biblical Hebrew word list", "https://ehebrew.net/biblical-hebrew-word-list-free-download/"],
+  hbr:   ["Holy Branches: 20 frequently used Hebrew words in the Bible", "https://holybranches.com/20-frequently-used-hebrew-words-in-the-bible/"],
+  bhp:   ["BiblicalHebrew.org: Particles and small words", "https://biblicalhebrew.org/particles-small-words-in-biblical-hebrew.aspx"],
+  bhq:   ["BiblicalHebrew.org: Basic prepositions", "https://biblicalhebrew.org/basic-prepositions-in-biblical-hebrew-form-function-and-meaning.aspx"],
+  blb:   ["Blue Letter Bible: Strong's H430, ʾĕlōhîm", "https://www.blueletterbible.org/lexicon/h430/kjv/wlc/0-1/"],
+  wpt:   ["Wikipedia: Tetragrammaton", "https://en.wikipedia.org/wiki/Tetragrammaton"],
+  firm:  ["FIRM: 38 Hebrew words every Christian should know", "https://firmisrael.org/learn/hebrew-words-every-christian-should-know-a-glossary/"],
+  bh3318:["Bible Hub: Strong's 3318, yāṣāʾ", "https://biblehub.com/hebrew/3318.htm"],
+  bhv:   ["BiblicalHebrew.org: Hebrew verbs occurring 500+ times", "https://biblicalhebrew.org/hebrew-verbs-5000.aspx"],
+  shes:  ["She's So Scripture: Yashav (יָשַׁב)", "https://shessoscripture.com/p/yashav-abide-hebrew-word-study"]
+};
+function srcLink(k) { const s = SRC[k]; return s ? `<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>` : ""; }
+
+/* ================= PARADIGM (Logos "Hebrew Paradigms" strong verb chart, root ק־ט־ל) ================= */
+// Rows and stem order follow the Logos chart. Cells use standard pointing (Logos prints them without dagesh).
+// "-" = no form in this stem; "a/b" = the chart gives two forms.
+const CONJ = [
+  { id: "perf", name: "Perfect", pgn: ["3ms", "3fs", "2ms", "2fs", "1cs", "3cp", "2mp", "2fp", "1cp"] },
+  { id: "impf", name: "Imperfect", pgn: ["3ms", "3fs", "2ms", "2fs", "1cs", "3mp", "3fp", "2mp", "2fp", "1cp"] },
+  { id: "impv", name: "Imperative", pgn: ["ms", "fs", "mp", "fp"] },
+  { id: "infc", name: "Infinitive construct", pgn: [""] },
+  { id: "infa", name: "Infinitive absolute", pgn: [""] },
+  { id: "ptca", name: "Participle active", pgn: ["ms"] },
+  { id: "ptcp", name: "Participle passive", pgn: ["ms"] },
+  { id: "wayy", name: "Wayyiqtol", pgn: ["3ms"] },
+  { id: "juss", name: "Jussive", pgn: ["3ms"] },
+  { id: "coh", name: "Cohortative", pgn: ["1cs"] }
+];
+const PREFIXED = ["impf", "wayy", "juss", "coh"];
+const STEMS = [
+  { id: "qal", name: "Qal", he: "קַל", voice: "Simple active",
+    marks: "No added letters: the basic stem the others build on. Perfect has a-vowels (קָטַל), the imperfect an ō before the last root letter (יִקְטֹל), and the active participle an ō after the first (קֹטֵל).",
+    src: ["logos", "bbh12", "uhgI"],
+    f: { perf: "קָטַל קָטְלָה קָטַלְתָּ קָטַלְתְּ קָטַלְתִּי קָטְלוּ קְטַלְתֶּם קְטַלְתֶּן קָטַלְנוּ",
+         impf: "יִקְטֹל תִּקְטֹל תִּקְטֹל תִּקְטְלִי אֶקְטֹל יִקְטְלוּ תִּקְטֹלְנָה תִּקְטְלוּ תִּקְטֹלְנָה נִקְטֹל",
+         impv: "קְטֹל קִטְלִי קִטְלוּ קְטֹלְנָה", infc: "קְטֹל", infa: "קָטוֹל", ptca: "קֹטֵל", ptcp: "קָטוּל",
+         wayy: "וַיִּקְטֹל", juss: "יִקְטֹל", coh: "אֶקְטְלָה" } },
+  { id: "niphal", name: "Niphal", he: "נִפְעַל", voice: "Simple passive or reflexive",
+    marks: "A nun prefix (נִ) in the perfect and participle. After another prefix the nun assimilates and doubles the first root letter (יִקָּטֵל); the imperative and infinitive use הִ instead.",
+    src: ["logos", "uhgN", "beck", "crv"],
+    f: { perf: "נִקְטַל נִקְטְלָה נִקְטַלְתָּ נִקְטַלְתְּ נִקְטַלְתִּי נִקְטְלוּ נִקְטַלְתֶּם נִקְטַלְתֶּן נִקְטַלְנוּ",
+         impf: "יִקָּטֵל תִּקָּטֵל תִּקָּטֵל תִּקָּטְלִי אֶקָּטֵל יִקָּטְלוּ תִּקָּטַלְנָה תִּקָּטְלוּ תִּקָּטַלְנָה נִקָּטֵל",
+         impv: "הִקָּטֵל הִקָּטְלִי הִקָּטְלוּ הִקָּטַלְנָה", infc: "הִקָּטֵל", infa: "נִקְטֹל/הִקָּטֹל", ptca: "-", ptcp: "נִקְטָל",
+         wayy: "וַיִּקָּטֵל", juss: "יִקָּטֵל", coh: "אִקָּטְלָה" } },
+  { id: "piel", name: "Piel", he: "פִּעֵל", voice: "Intensive, factitive",
+    marks: "The middle root letter is doubled with a dagesh (קִטֵּל). Prefixes take a shewa (יְקַטֵּל), and the participle adds מְ.",
+    src: ["logos", "bbh26", "uhgP"],
+    f: { perf: "קִטֵּל/קִטַּל קִטְּלָה קִטַּלְתָּ קִטַּלְתְּ קִטַּלְתִּי קִטְּלוּ קִטַּלְתֶּם קִטַּלְתֶּן קִטַּלְנוּ",
+         impf: "יְקַטֵּל תְּקַטֵּל תְּקַטֵּל תְּקַטְּלִי אֲקַטֵּל יְקַטְּלוּ תְּקַטֵּלְנָה תְּקַטְּלוּ תְּקַטֵּלְנָה נְקַטֵּל",
+         impv: "קַטֵּל קַטְּלִי קַטְּלוּ קַטֵּלְנָה", infc: "קַטֵּל", infa: "קַטֵּל/קַטֹּל", ptca: "מְקַטֵּל", ptcp: "-",
+         wayy: "וַיְקַטֵּל", juss: "יְקַטֵּל", coh: "אֲקַטְּלָה" } },
+  { id: "pual", name: "Pual", he: "פֻּעַל", voice: "Passive of the Piel",
+    marks: "Like the Piel, the middle root letter is doubled, but the first root letter takes a u-vowel (קֻטַּל). No imperative or infinitive construct.",
+    src: ["logos", "crv", "bbh26"],
+    f: { perf: "קֻטַּל קֻטְּלָה קֻטַּלְתָּ קֻטַּלְתְּ קֻטַּלְתִּי קֻטְּלוּ קֻטַּלְתֶּם קֻטַּלְתֶּן קֻטַּלְנוּ",
+         impf: "יְקֻטַּל תְּקֻטַּל תְּקֻטַּל תְּקֻטְּלִי אֲקֻטַּל יְקֻטְּלוּ תְּקֻטַּלְנָה תְּקֻטְּלוּ תְּקֻטַּלְנָה נְקֻטַּל",
+         impv: "- - - -", infc: "-", infa: "קֻטֹּל", ptca: "-", ptcp: "מְקֻטָּל",
+         wayy: "וַיְקֻטַּל", juss: "יְקֻטַּל", coh: "אֲקֻטְּלָה" } },
+  { id: "hiphil", name: "Hiphil", he: "הִפְעִיל", voice: "Causative active",
+    marks: "A ה prefix in the perfect, imperative and infinitive, an a-vowel under the imperfect prefix (יַ), and a hireq-yod (ִי) before the last root letter (הִקְטִיל). The participle uses מַ.",
+    src: ["logos", "bbh30", "uhgH", "beck"],
+    f: { perf: "הִקְטִיל הִקְטִילָה הִקְטַלְתָּ הִקְטַלְתְּ הִקְטַלְתִּי הִקְטִילוּ הִקְטַלְתֶּם הִקְטַלְתֶּן הִקְטַלְנוּ",
+         impf: "יַקְטִיל תַּקְטִיל תַּקְטִיל תַּקְטִילִי אַקְטִיל יַקְטִילוּ תַּקְטֵלְנָה תַּקְטִילוּ תַּקְטֵלְנָה נַקְטִיל",
+         impv: "הַקְטֵל הַקְטִילִי הַקְטִילוּ הַקְטֵלְנָה", infc: "הַקְטִיל", infa: "הַקְטֵל", ptca: "מַקְטִיל", ptcp: "-",
+         wayy: "וַיַּקְטֵל", juss: "יַקְטֵל", coh: "אַקְטִילָה" } },
+  { id: "hophal", name: "Hophal", he: "הָפְעַל", voice: "Passive of the Hiphil",
+    marks: "An o-vowel (qamets hatuf) under the prefix: הָקְטַל, יָקְטַל, מָקְטָל. Some texts use a u-vowel instead (הֻקְטַל). No imperative or infinitive construct.",
+    src: ["logos", "bbh33", "ginH"],
+    f: { perf: "הָקְטַל הָקְטְלָה הָקְטַלְתָּ הָקְטַלְתְּ הָקְטַלְתִּי הָקְטְלוּ הָקְטַלְתֶּם הָקְטַלְתֶּן הָקְטַלְנוּ",
+         impf: "יָקְטַל תָּקְטַל תָּקְטַל תָּקְטְלִי אָקְטַל יָקְטְלוּ תָּקְטַלְנָה תָּקְטְלוּ תָּקְטַלְנָה נָקְטַל",
+         impv: "- - - -", infc: "-", infa: "הָקְטֵל", ptca: "-", ptcp: "מָקְטָל",
+         wayy: "וַיָּקְטַל", juss: "יָקְטַל", coh: "אָקְטְלָה" } },
+  { id: "hithpael", name: "Hithpael", he: "הִתְפַּעֵל", voice: "Reflexive or reciprocal",
+    marks: "A הִתְ prefix (just תְ after an imperfect prefix) plus a doubled middle root letter: הִתְקַטֵּל. The participle uses מִתְ.",
+    src: ["logos", "bbh34", "uhgT"],
+    f: { perf: "הִתְקַטֵּל הִתְקַטְּלָה הִתְקַטַּלְתָּ הִתְקַטַּלְתְּ הִתְקַטַּלְתִּי הִתְקַטְּלוּ הִתְקַטַּלְתֶּם הִתְקַטַּלְתֶּן הִתְקַטַּלְנוּ",
+         impf: "יִתְקַטֵּל תִּתְקַטֵּל תִּתְקַטֵּל תִּתְקַטְּלִי אֶתְקַטֵּל יִתְקַטְּלוּ תִּתְקַטֵּלְנָה תִּתְקַטְּלוּ תִּתְקַטֵּלְנָה נִתְקַטֵּל",
+         impv: "הִתְקַטֵּל הִתְקַטְּלִי הִתְקַטְּלוּ הִתְקַטֵּלְנָה", infc: "הִתְקַטֵּל", infa: "הִתְקַטֵּל", ptca: "מִתְקַטֵּל", ptcp: "-",
+         wayy: "וַיִּתְקַטֵּל", juss: "יִתְקַטֵּל", coh: "אֶתְקַטְּלָה" } }
+];
+// cell(si, ci, pi) -> array of alternative spellings, or null when the stem has no such form.
+STEMS.forEach(s => { s.cells = {}; CONJ.forEach(c => { const parts = s.f[c.id].split(" "); if (parts.length !== c.pgn.length) console.error("Row count mismatch:", s.name, c.id); s.cells[c.id] = parts.map(p => p === "-" ? null : p.split("/")); }); });
+const cell = (si, cid, pi) => STEMS[si].cells[cid][pi];
+
+/* English glosses built from stem, form and person */
+const WHO = { "3ms": "he", "3fs": "she", "2ms": "you (m.s.)", "2fs": "you (f.s.)", "1cs": "I", "3cp": "they", "3mp": "they (m.)", "3fp": "they (f.)", "2mp": "you (m.pl.)", "2fp": "you (f.pl.)", "1cp": "we" };
+const SELF = { "3ms": "himself", "3fs": "herself", "2ms": "yourself", "2fs": "yourself", "1cs": "myself", "3cp": "themselves", "3mp": "themselves", "3fp": "themselves", "2mp": "yourselves", "2fp": "yourselves", "1cp": "ourselves" };
+const VERB = {
+  qal: { past: "killed", fut: "kill", impv: "kill", inf: "to kill", ptca: "killing", ptcp: "killed" },
+  niphal: { pass: "killed", inf: "to be killed", ptcp: "killed, being killed" },
+  piel: { past: "slaughtered", fut: "slaughter", impv: "slaughter", inf: "to slaughter", ptca: "slaughtering" },
+  pual: { pass: "slaughtered", inf: "to be slaughtered", ptcp: "slaughtered, being slaughtered" },
+  hiphil: { past: "caused to kill", fut: "cause to kill", impv: "cause to kill", inf: "to cause to kill", ptca: "causing to kill" },
+  hophal: { pass: "caused to kill", inf: "to be caused to kill", ptcp: "caused to kill" },
+  hithpael: { past: "killed", fut: "kill", impv: "kill", inf: "to kill oneself", ptca: "killing oneself", refl: true }
+};
+function gloss(si, cid, pi) {
+  const s = STEMS[si], v = VERB[s.id], pgn = CONJ.find(c => c.id === cid).pgn[pi], who = WHO[pgn] || "you";
+  const self = v.refl ? " " + (SELF[pgn] || "yourself") : "";
+  const be = pgn === "1cs" || pgn === "3ms" || pgn === "3fs" ? "was" : "were";
+  if (cid === "infc" || cid === "infa") return v.inf + (cid === "infa" ? " (absolute)" : "");
+  if (cid === "ptca") return v.ptca;
+  if (cid === "ptcp") return v.ptcp;
+  if (v.pass) {
+    if (cid === "perf") return `${who} ${be} ${v.pass}`;
+    if (cid === "impf") return `${who} will be ${v.pass}`;
+    if (cid === "wayy") return `and he was ${v.pass}`;
+    if (cid === "juss") return `let him be ${v.pass}`;
+    if (cid === "coh") return `let me be ${v.pass}`;
+    return `be ${v.pass}!`;
+  }
+  if (cid === "perf") return `${who} ${v.past}${self}`;
+  if (cid === "impf") return `${who} will ${v.fut}${self}`;
+  if (cid === "impv") return `${v.impv}${v.refl ? " " + (pgn.endsWith("p") ? "yourselves" : "yourself") : ""}! (${pgn})`;
+  if (cid === "wayy") return `and he ${v.past}${v.refl ? " himself" : ""}`;
+  if (cid === "juss") return `let him ${v.fut}${v.refl ? " himself" : ""}`;
+  if (cid === "coh") return `let me ${v.fut}${v.refl ? " myself" : ""}`;
+  return "";
+}
+
+/* Color each form: red = stem marker, gold = person/number prefix or ending (and waw), plain = the root ק ט ל */
+function colorForm(word, si, cid) {
+  const cl = word.match(/[א-ת][֑-ׇ]*/g) || [word];
+  const base = cl.map(c => c[0]);
+  const q = base.indexOf("ק"), t = base.indexOf("ט", q + 1), l = base.lastIndexOf("ל");
+  const sid = STEMS[si].id, doubled = ["piel", "pual", "hithpael"].includes(sid);
+  return cl.map((c, i) => {
+    let k = "";
+    if (q < 0 || t < 0 || l < 0) k = "";
+    else if (i < q) {
+      const w = base[0] === "ו" ? 1 : 0;
+      if (i < w) k = "p";
+      else if (PREFIXED.includes(cid) && i === w) k = "p";
+      else k = "m";
+    }
+    else if (i > l) k = "p";
+    else if (i === t && doubled && c.includes("ּ")) k = "m";
+    else if (i === q && sid === "niphal" && c.includes("ּ")) k = "m";
+    else if (i > t && i < l && sid === "hiphil") k = "m";
+    return k ? `<span class="${k}">${c}</span>` : c;
+  }).join("");
+}
+function formHTML(si, cid, pi, size) {
+  const alts = cell(si, cid, pi);
+  if (!alts) return `<span class="na">—</span>`;
+  return `<span class="he${size ? " " + size : ""}" lang="he">${alts.map(a => colorForm(a, si, cid)).join(" / ")}</span>`;
+}
+const LEGEND = `<div class="legend"><span><span class="m">■</span> stem marker</span><span><span class="p">■</span> person/number prefix or ending</span><span>plain = the root ק ט ל</span></div>`;
+// Every (stem, form, person) that spells this word, so shared forms count as right either way.
+function sameAs(word) {
+  const out = [];
+  STEMS.forEach((s, si) => CONJ.forEach(c => c.pgn.forEach((p, pi) => { const a = cell(si, c.id, pi); if (a && a.includes(word)) out.push([si, c.id, pi]); })));
+  return out;
+}
+
+/* ================= VOCAB ================= */
+// [Hebrew, transliteration, gloss, note, source]
+const VOCAB = [
+  ["אָמַר", "ʾāmar", "say", "", "ginV"], ["הָיָה", "hāyâ", "be, become", "", "ginV"], ["עָשָׂה", "ʿāśâ", "make, do", "", "ginV"],
+  ["בּוֹא", "bôʾ", "come; (Hiphil) bring", "", "ginV"], ["נָתַן", "nātan", "give", "", "ginV"], ["הָלַךְ", "hālak", "go, walk", "", "ginV"],
+  ["רָאָה", "rāʾâ", "see", "", "ginV"], ["שָׁמַע", "šāmaʿ", "hear, listen to", "", "ginV"], ["יָשַׁב", "yāšab", "sit, stay, dwell", "", "shes"],
+  ["יָצָא", "yāṣāʾ", "go out, come out", "Hiphil: bring out, lead out.", "bh3318"], ["לָקַח", "lāqaḥ", "take", "", "bhv"], ["יָדַע", "yādaʿ", "know", "", "bhv"],
+  ["עָלָה", "ʿālâ", "go up", "", "bhv"],
+  ["אֱלֹהִים", "ʾĕlōhîm", "God, gods", "Plural in form, but usually takes singular verbs when it means the one God.", "blb"],
+  ["יְהוָה", "YHWH", "the LORD", "Traditionally read aloud as ʾĂdōnāy, \"Lord\".", "wpt"],
+  ["מֶלֶךְ", "melek", "king", "", "ah14"], ["אֶרֶץ", "ʾereṣ", "land, earth", "", "ah14"], ["בֵּן", "bēn", "son", "", "ah14"], ["יָד", "yād", "hand", "", "ah14"],
+  ["אָב", "ʾāb", "father", "", "eheb"], ["אָדָם", "ʾādām", "man, humankind", "", "eheb"], ["אִישׁ", "ʾîš", "man, person", "", "eheb"],
+  ["בַּיִת", "bayit", "house", "", "eheb"], ["דָּבָר", "dābār", "word, matter, thing", "", "eheb"], ["יוֹם", "yôm", "day", "", "hbr"],
+  ["עַם", "ʿam", "people, nation", "", "ginV"], ["עִיר", "ʿîr", "city", "", "ginV"], ["אִשָּׁה", "ʾiššâ", "woman, wife", "", "ginV"],
+  ["בְּרִית", "bərît", "covenant", "", "firm"], ["חֶסֶד", "ḥesed", "steadfast love, loyalty, kindness", "", "firm"],
+  ["רוּחַ", "rûaḥ", "spirit, wind, breath", "", "firm"], ["תּוֹרָה", "tôrâ", "instruction, law", "Broader than \"law\": God's guidance for living.", "firm"],
+  ["שָׁלוֹם", "šālôm", "peace, well-being", "", "firm"],
+  ["כִּי", "kî", "for, because, that, when", "", "bhp"], ["אֲשֶׁר", "ʾăšer", "who, which, that", "", "bhp"], ["לֹא", "lōʾ", "not", "", "bhp"],
+  ["גַּם", "gam", "also, even", "", "bhp"], ["הִנֵּה", "hinnēh", "behold, look", "", "bhp"], ["עַל", "ʿal", "on, upon, over", "", "bhp"],
+  ["אֶל", "ʾel", "to, toward", "", "bhp"], ["מִן", "min", "from", "Often shortened to the prefix מִ.", "bhq"]
+];
+
+/* ================= STATE ================= */
+const DAY = 864e5, today = () => new Date().toISOString().slice(0, 10), LS = "shoresh.v1";
+const blank = () => ({ boxes: {}, days: {} });
+let S = blank();
+try { const raw = localStorage.getItem(LS); if (raw) S = Object.assign(blank(), JSON.parse(raw)); } catch (e) {}
+let doc = null, saveT = null, saving = false, again = false;
+function save() {
+  try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {}
+  if (doc) { clearTimeout(saveT); saveT = setTimeout(flush, 1200); }
+}
+async function flush() {
+  if (!doc) return;
+  if (saving) { again = true; return; }
+  saving = true;
+  try { await doc.set({ state: JSON.stringify(S), at: Date.now() }); } catch (e) {}
+  saving = false;
+  if (again) { again = false; flush(); }
+}
+(async () => {
+  try {
+    if (!window.claude?.use) return;
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    const ref = db.collection("data/users/" + id).doc("progress");
+    const snap = await ref.get();
+    doc = ref;
+    const r = snap.exists ? snap.data() : null;
+    if (r && r.state) {
+      const remote = JSON.parse(r.state);
+      if (Object.keys(remote.boxes || {}).length >= Object.keys(S.boxes).length) { S = Object.assign(blank(), remote); render(); } else flush();
+    } else if (Object.keys(S.boxes).length) flush();
+  } catch (e) {}
+})();
+function point(n) { S.days[today()] = (S.days[today()] || 0) + n; save(); pill(); }
+function pill() { $("#scorePill").textContent = (S.days[today()] || 0) + " today"; }
+
+/* ================= HELPERS ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+/* ================= ROUTER ================= */
+let tab = "stems", sub = {};
+function go(t) { tab = t; sub = {}; document.querySelectorAll("nav.tabs button").forEach(b => b.dataset.tab === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")); render(); window.scrollTo(0, 0); }
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => go(b.dataset.tab));
+function render() {
+  pill();
+  const v = $("#view"); v.innerHTML = "";
+  const sec = document.createElement("section"); v.appendChild(sec);
+  ({ stems: viewStems, drill: viewDrill, vocab: viewVocab, sources: viewSources })[tab](sec);
+}
+
+/* ================= STEMS VIEW ================= */
+const SECTIONS = [["Perfect", ["perf"]], ["Imperfect", ["impf"]], ["Imperative", ["impv"]], ["Other forms", ["infc", "infa", "ptca", "ptcp", "wayy", "juss", "coh"]]];
+const CONJ_SHORT = { perf: "Perf", impf: "Impf", impv: "Impv", infc: "Inf cons", infa: "Inf abs", ptca: "Ptc act", ptcp: "Ptc pas", wayy: "Wayyiqtol", juss: "Jussive", coh: "Cohort" };
+function detailHTML(d) {
+  if (!d) return `<p class="small muted">Tap any form in the chart to see what it means and how it's built.</p>`;
+  const [si, cid, pi] = d, c = CONJ.find(x => x.id === cid), s = STEMS[si];
+  if (!cell(si, cid, pi)) return `<p class="small muted">The ${s.name} has no ${c.name.toLowerCase()}.</p>`;
+  return `<div class="row between" style="align-items:flex-start;flex-wrap:nowrap"><div><b>${s.name} ${c.name.toLowerCase()}${c.pgn[pi] ? " " + c.pgn[pi] : ""}</b>
+      <div>“${esc(gloss(si, cid, pi))}”</div></div>${formHTML(si, cid, pi, "detail-he")}</div>
+    <p class="small">${heInline(s.marks)}</p>`;
+}
+const heInline = t => esc(t).replace(/([֐-׿]+)/g, '<span class="he" lang="he">$1</span>');
+function viewStems(el) {
+  if (!sub.mode) { sub.mode = "chart"; sub.sec = 0; sub.stem = 0; }
+  let body;
+  if (sub.mode === "chart") {
+    const [, cids] = SECTIONS[sub.sec];
+    const rows = cids.flatMap(cid => CONJ.find(c => c.id === cid).pgn.map((p, pi) => [cid, pi, p]));
+    body = `
+      <div class="chips">${SECTIONS.map(([n], i) => `<button class="chip" data-sec="${i}" aria-pressed="${i === sub.sec}">${n}</button>`).join("")}</div>
+      ${LEGEND}
+      <div class="tablewrap"><table class="para">
+        <thead><tr><th></th>${STEMS.map(s => `<th>${s.name}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(([cid, pi, p]) => `<tr><th>${cids.length > 1 ? CONJ_SHORT[cid] + (p ? " " + p : "") : p}</th>${STEMS.map((s, si) => {
+          const on = sub.d && sub.d[0] === si && sub.d[1] === cid && sub.d[2] === pi;
+          return `<td${on ? ' class="on"' : ""}>${cell(si, cid, pi) ? `<button class="cellbtn" data-cell="${si},${cid},${pi}">${formHTML(si, cid, pi)}</button>` : `<span class="na">—</span>`}</td>`;
+        }).join("")}</tr>`).join("")}</tbody></table></div>
+      <div class="card detail">${detailHTML(sub.d)}</div>`;
+  } else {
+    const st = STEMS[sub.stem];
+    body = `
+      <div class="chips">${STEMS.map((s, i) => `<button class="chip" data-stem="${i}" aria-pressed="${i === sub.stem}">${s.name}</button>`).join("")}</div>
+      <div class="card" style="display:grid;gap:12px">
+        <div class="stem-head"><div><h2>${st.name}</h2><span class="muted">${esc(st.voice)}</span></div><span class="he" lang="he">${st.he}</span></div>
+        <p class="small">${heInline(st.marks)}</p>
+        ${LEGEND}
+        ${CONJ.map(c => `<div style="display:grid;gap:2px"><span class="eyebrow">${c.name}</span>
+          <div class="forms">${c.pgn.map((p, pi) => `<div class="form-row">${formHTML(sub.stem, c.id, pi)}<span class="small"><b>${p || ""}</b> ${cell(sub.stem, c.id, pi) ? "“" + esc(gloss(sub.stem, c.id, pi)) + "”" : `<span class="muted">not used in the ${st.name}</span>`}</span></div>`).join("")}</div></div>`).join("")}
+        <p class="small muted">Checked against: ${st.src.map(srcLink).join("; ")}</p>
+      </div>`;
+  }
+  el.innerHTML = `
+    <div><span class="eyebrow">Binyanim · strong verb ק־ט־ל</span><h1>Stems</h1></div>
+    <div class="chips"><button class="chip" data-mode="chart" aria-pressed="${sub.mode === "chart"}">Logos chart</button><button class="chip" data-mode="stem" aria-pressed="${sub.mode === "stem"}">One stem at a time</button></div>
+    ${body}`;
+  el.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { sub.mode = b.dataset.mode; render(); });
+  el.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { sub.sec = +b.dataset.sec; sub.d = null; render(); });
+  el.querySelectorAll("[data-stem]").forEach(b => b.onclick = () => { sub.stem = +b.dataset.stem; render(); });
+  el.querySelectorAll("[data-cell]").forEach(b => b.onclick = () => { const [si, cid, pi] = b.dataset.cell.split(","); sub.d = [+si, cid, +pi]; const y = window.scrollY; render(); window.scrollTo(0, y); });
+}
+
+/* ================= DRILL VIEW ================= */
+// Focus narrows what the drill asks: which stems, which forms, and whether to name the stem, the form, or both.
+function focus() {
+  const f = S.focus || {};
+  const stems = (f.stems || []).filter(i => STEMS[i]), conjs = (f.conjs || []).filter(id => CONJ.some(c => c.id === id));
+  return { stems: stems.length ? stems : STEMS.map((s, i) => i), conjs: conjs.length ? conjs : CONJ.map(c => c.id), ask: f.ask || "both" };
+}
+function setFocus(patch) { S.focus = Object.assign(focus(), patch); save(); sub.q = null; sub.m = null; render(); }
+function toggleIn(list, x, order) { const out = list.includes(x) ? (list.length > 1 ? list.filter(y => y !== x) : list) : [...list, x]; return order.filter(y => out.includes(y)); }
+function focusItems() {
+  const F = focus(), items = [];
+  F.stems.forEach(si => F.conjs.forEach(cid => CONJ.find(c => c.id === cid).pgn.forEach((p, pi) => { if (cell(si, cid, pi)) items.push([si, cid, pi]); })));
+  return items;
+}
+function focusHTML() {
+  const F = focus(), allS = F.stems.length === STEMS.length, allC = F.conjs.length === CONJ.length;
+  const summary = `${allS ? "All stems" : F.stems.map(i => STEMS[i].name).join(", ")} · ${allC ? "all forms" : F.conjs.map(id => CONJ_SHORT[id]).join(", ")}`;
+  return `<details class="card focus" ${sub.focusOpen ? "open" : ""} id="focusBox"><summary><b>Focus</b> <span class="small muted">${esc(summary)}</span></summary>
+    <div style="display:grid;gap:12px;margin-top:12px">
+      <div style="display:grid;gap:6px"><div class="row between"><span class="eyebrow">Stems</span><button class="linkbtn" data-allstems>All</button></div>
+        <div class="wrapchips">${STEMS.map((s, i) => `<button class="chip" data-fs="${i}" aria-pressed="${F.stems.includes(i)}">${s.name}</button>`).join("")}</div></div>
+      <div style="display:grid;gap:6px"><div class="row between"><span class="eyebrow">Forms</span><button class="linkbtn" data-allforms>All</button></div>
+        <div class="wrapchips">${CONJ.map(c => `<button class="chip" data-fc="${c.id}" aria-pressed="${F.conjs.includes(c.id)}">${c.name}</button>`).join("")}</div></div>
+      <div style="display:grid;gap:6px"><span class="eyebrow">Ask me to name</span>
+        <div class="wrapchips">${[["stem", "The stem"], ["form", "The form & person"], ["both", "Both"]].map(([k, l]) => `<button class="chip" data-ask="${k}" aria-pressed="${F.ask === k}">${l}</button>`).join("")}</div></div>
+    </div></details>`;
+}
+function viewDrill(el) {
+  if (!sub.kind) sub.kind = "parse";
+  el.innerHTML = `
+    <div><span class="eyebrow">Practice</span><h1>Drill</h1></div>
+    <div class="chips"><button class="chip" data-kind="parse" aria-pressed="${sub.kind === "parse"}">Parse a form</button><button class="chip" data-kind="match" aria-pressed="${sub.kind === "match"}">Match the stems</button></div>
+    ${focusHTML()}` + (sub.kind === "parse" ? parseHTML() : matchHTML());
+  el.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { sub = { kind: b.dataset.kind, focusOpen: sub.focusOpen }; render(); });
+  const box = $("#focusBox", el); box.ontoggle = () => { sub.focusOpen = box.open; };
+  const F = focus();
+  el.querySelectorAll("[data-fs]").forEach(b => b.onclick = () => setFocus({ stems: toggleIn(F.stems, +b.dataset.fs, STEMS.map((s, i) => i)) }));
+  el.querySelectorAll("[data-fc]").forEach(b => b.onclick = () => setFocus({ conjs: toggleIn(F.conjs, b.dataset.fc, CONJ.map(c => c.id)) }));
+  el.querySelectorAll("[data-ask]").forEach(b => b.onclick = () => setFocus({ ask: b.dataset.ask }));
+  $("[data-allstems]", el).onclick = () => setFocus({ stems: STEMS.map((s, i) => i) });
+  $("[data-allforms]", el).onclick = () => setFocus({ conjs: CONJ.map(c => c.id) });
+  if (sub.kind === "parse") wireParse(el); else wireMatch(el);
+}
+const EMPTY_FOCUS = `<div class="card"><p>Nothing to practice with this focus. For example, the Pual and Hophal have no imperative or infinitive construct, so add another stem or form.</p></div>`;
+function newParse() {
+  const items = focusItems();
+  if (!items.length) return null;
+  const [si, cid, pi] = pick(items), alts = cell(si, cid, pi);
+  return { si, cid, pi, word: pick(alts), stem: null, conj: null, pgn: null };
+}
+// Steps depend on what's asked; a form with one person (e.g. infinitive) skips the person step.
+function parseSteps(q) {
+  const ask = focus().ask, steps = [];
+  if (ask !== "form") steps.push("stem");
+  if (ask !== "stem") { steps.push("conj"); const c = q.conj && CONJ.find(x => x.id === q.conj); if (!c || c.pgn.length > 1) steps.push("pgn"); }
+  return steps;
+}
+function parseJudge(q) {
+  const ask = focus().ask, same = sameAs(q.word);
+  const stemFor = ask === "form" ? q.si : q.stem;
+  const match = same.filter(([si, cid, pi]) => (stemFor === null || si === stemFor) && (ask === "stem" || (cid === q.conj && (CONJ.find(c => c.id === cid).pgn.length === 1 || pi === q.pgn))));
+  return { same, right: match.length > 0 };
+}
+function parseHTML() {
+  if (!sub.q) sub.q = newParse();
+  const q = sub.q;
+  if (!q) return EMPTY_FOCUS;
+  const ask = focus().ask, steps = parseSteps(q);
+  const next = steps.find(s => q[s] === null);
+  const done = !next;
+  const prompt = ask === "stem" ? "Which stem is this?" : ask === "form" ? `This is ${STEMS[q.si].name}. Which form and person?` : "Parse this form";
+  const stemHTML = steps.includes("stem") ? `<div style="display:grid;gap:8px"><span class="eyebrow">Stem</span><div class="opts">${STEMS.map((s, i) => {
+      const cls = q.stem === null ? "" : i === q.stem ? (sameAs(q.word).some(([si]) => si === i) ? "right" : "wrong") : "";
+      return `<button class="opt ${cls}" data-pick="stem:${i}" ${q.stem !== null ? "disabled" : ""}><b>${s.name}</b><span class="he" lang="he">${s.he}</span></button>`;
+    }).join("")}</div></div>` : "";
+  const showConj = steps.includes("conj") && (!steps.includes("stem") || q.stem !== null);
+  const conjHTML = showConj ? `<div style="display:grid;gap:8px"><span class="eyebrow">Form</span><div class="opts">${CONJ.map(c => {
+      const cls = q.conj === null ? "" : c.id === q.conj ? (sameAs(q.word).some(([, cid]) => cid === c.id) ? "right" : "wrong") : "";
+      return `<button class="opt ${cls}" data-pick="conj:${c.id}" ${q.conj !== null ? "disabled" : ""}><b>${c.name}</b></button>`;
+    }).join("")}</div></div>` : "";
+  const pc = q.conj && CONJ.find(c => c.id === q.conj);
+  const pgnHTML = steps.includes("pgn") && pc ? `<div style="display:grid;gap:8px"><span class="eyebrow">Person · gender · number</span><div class="opts pgn">${pc.pgn.map((p, pi) => {
+      const cls = q.pgn === null ? "" : pi === q.pgn ? (sameAs(q.word).some(([, cid, x]) => cid === q.conj && x === pi) ? "right" : "wrong") : "";
+      return `<button class="opt ${cls}" data-pick="pgn:${pi}" ${q.pgn !== null ? "disabled" : ""}><b>${p}</b><span class="small muted">${WHO[p] || ""}</span></button>`;
+    }).join("")}</div></div>` : "";
+  let result = "";
+  if (done) {
+    const J = parseJudge(q);
+    const all = J.same.map(([si, cid, pi]) => { const c = CONJ.find(x => x.id === cid); return `${STEMS[si].name} ${c.name.toLowerCase()}${c.pgn[pi] ? " " + c.pgn[pi] : ""}`; });
+    result = `<div class="feedback ${J.right ? "ok" : "no"}">${J.right ? "Correct!" : "Not quite."} <span class="he" lang="he">${q.word}</span> is ${all.join(" or ")}: “${esc(gloss(q.si, q.cid, q.pi))}”.</div>
+      <div class="card" style="display:grid;gap:8px">${formHTML(q.si, q.cid, q.pi, "detail-he")}${LEGEND}<p class="small">${heInline(STEMS[q.si].marks)}</p></div>
+      <button class="btn block" id="nextQ">Next form</button>`;
+  }
+  return `
+    <div class="card" style="display:grid;gap:6px;justify-items:center">
+      <span class="eyebrow">${prompt}</span>
+      <span class="he big-he" lang="he">${q.word}</span>
+    </div>
+    ${stemHTML}${conjHTML}${pgnHTML}${result}`;
+}
+function wireParse(el) {
+  el.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const [k, v] = b.dataset.pick.split(":");
+    sub.q[k] = k === "conj" ? v : +v;
+    if (k === "conj") sub.q.pgn = null;
+    if (!parseSteps(sub.q).find(s => sub.q[s] === null) && parseJudge(sub.q).right) point(2);
+    render();
+  });
+  const n = $("#nextQ", el); if (n) n.onclick = () => { sub.q = newParse(); render(); window.scrollTo(0, 0); };
+}
+// Match: one form and person across the focused stems; tap a stem row, then the form that belongs there.
+function matchRows() {
+  const F = focus(), rows = [];
+  F.conjs.forEach(cid => CONJ.find(c => c.id === cid).pgn.forEach((p, pi) => { if (F.stems.some(si => cell(si, cid, pi))) rows.push([cid, pi]); }));
+  return rows;
+}
+function newMatch(row) {
+  const F = focus(), [cid, pi] = row;
+  const rows = F.stems.filter(si => cell(si, cid, pi));
+  const word = si => cell(si, cid, pi)[0];
+  // Distractors: the same form from stems outside the focus, so a narrow focus still has a real choice.
+  const extra = shuffle(STEMS.map((s, i) => i).filter(i => !rows.includes(i) && cell(i, cid, pi) && !rows.some(r => word(r) === word(i)))).slice(0, Math.max(0, 4 - rows.length));
+  return { cid, pi, rows, slots: {}, active: rows[0], wrong: null, done: false,
+    pool: shuffle([...rows, ...extra].map(i => ({ id: i, t: word(i), used: false }))) };
+}
+function matchHTML() {
+  const rowsAll = matchRows();
+  if (!rowsAll.length) return EMPTY_FOCUS;
+  if (!sub.m || !rowsAll.some(([c, p]) => c === sub.m.cid && p === sub.m.pi)) sub.m = newMatch(rowsAll[0]);
+  const M = sub.m, c = CONJ.find(x => x.id === M.cid), label = `${c.name}${c.pgn[M.pi] ? " " + c.pgn[M.pi] : ""}`;
+  return `
+    <label class="small" for="mrow">Form to match</label>
+    <select id="mrow">${rowsAll.map(([cid, pi]) => { const cc = CONJ.find(x => x.id === cid); return `<option value="${cid},${pi}" ${cid === M.cid && pi === M.pi ? "selected" : ""}>${cc.name}${cc.pgn[pi] ? " " + cc.pgn[pi] : ""}</option>`; }).join("")}</select>
+    <p class="small muted">Tap a stem, then tap its ${esc(label.toLowerCase())} below.</p>
+    <div class="slots">${M.rows.map(i => {
+      const s = STEMS[i], f = M.slots[i];
+      return `<button class="slot${f ? " filled" : ""}${!f && M.active === i ? " active" : ""}" data-slot="${i}" ${f ? "disabled" : ""}>
+        <span><b>${s.name}</b> <span class="he small" lang="he">${s.he}</span><div class="small muted">“${esc(gloss(i, M.cid, M.pi))}”</div></span>
+        ${f ? formHTML(i, M.cid, M.pi) : `<span class="q">?</span>`}</button>`;
+    }).join("")}</div>
+    ${M.done ? "" : `<div class="pool">${M.pool.map(x => `<button class="chip he${M.wrong === x.id ? " wrong" : ""}" lang="he" data-chip="${x.id}" ${x.used ? "hidden" : ""}>${x.t}</button>`).join("")}</div>`}
+    ${M.wrong !== null ? `<div class="feedback no">That one isn't the ${STEMS[M.active].name}. Look for its stem marker and try again.</div>` : ""}
+    ${M.done ? `<div class="feedback ok">All matched! The red letters are what set each stem apart.</div>${LEGEND}<button class="btn block" id="nextM">Next form</button>` : ""}`;
+}
+function wireMatch(el) {
+  const M = sub.m; if (!M) return;
+  const sel = $("#mrow", el); if (sel) sel.onchange = () => { const [cid, pi] = sel.value.split(","); sub.m = newMatch([cid, +pi]); render(); };
+  el.querySelectorAll("[data-slot]").forEach(b => b.onclick = () => { M.active = +b.dataset.slot; M.wrong = null; render(); });
+  el.querySelectorAll("[data-chip]").forEach(b => b.onclick = () => {
+    const x = M.pool.find(y => y.id === +b.dataset.chip);
+    if (!cell(M.active, M.cid, M.pi).includes(x.t)) { M.wrong = x.id; render(); return; }
+    x.used = true; M.slots[M.active] = x.t; M.wrong = null; point(1);
+    const nx = M.rows.find(i => !M.slots[i]);
+    if (nx === undefined) { M.done = true; point(3); } else M.active = nx;
+    render();
+  });
+  const n = $("#nextM", el); if (n) n.onclick = () => { const rows = matchRows(); const k = rows.findIndex(([c, p]) => c === M.cid && p === M.pi); sub.m = newMatch(rows[(k + 1) % rows.length]); render(); window.scrollTo(0, 0); };
+}
+
+/* ================= VOCAB VIEW ================= */
+// Leitner boxes: a right answer moves a word up a box (seen less often), a miss sends it back to box 0.
+const GAP = [0, 1, 3, 7, 21];
+function dueWords() {
+  const now = Date.now();
+  return VOCAB.filter(w => { const b = S.boxes[w[0]]; return !b || b.due <= now; });
+}
+function viewVocab(el) {
+  if (!sub.mode) sub.mode = "cards";
+  const known = VOCAB.filter(w => (S.boxes[w[0]]?.box || 0) >= 2).length;
+  const head = `
+    <div><span class="eyebrow">Millim · ${VOCAB.length} high-frequency words</span><h1>Vocab</h1></div>
+    <div class="chips"><button class="chip" data-vm="cards" aria-pressed="${sub.mode === "cards"}">Flashcards</button><button class="chip" data-vm="list" aria-pressed="${sub.mode === "list"}">Word list</button></div>`;
+  if (sub.mode === "list") {
+    el.innerHTML = head + `<p class="small muted">${known} of ${VOCAB.length} words reviewed well at least twice.</p>
+      <div class="card" style="padding-block:4px">${VOCAB.map(w => `<div class="vocab-row"><span class="he" lang="he">${w[0]}</span>
+        <span><b>${esc(w[2])}</b> · <span class="tr">${w[1]}</span>${w[3] ? `<span class="small muted"> · ${esc(w[3])}</span>` : ""}</span>
+        <span class="small muted">Source: ${srcLink(w[4])}</span></div>`).join("")}</div>`;
+  } else {
+    if (!sub.queue) sub.queue = shuffle(dueWords());
+    const w = sub.queue[0];
+    if (!w) {
+      el.innerHTML = head + `<div class="card" style="display:grid;gap:10px;text-align:center;justify-items:center;padding-block:32px"><h2>All caught up</h2>
+        <p class="muted">Every word is scheduled for later. Come back tomorrow, or drill the stems.</p><button class="btn" id="toDrill">Go to the drill</button></div>`;
+      $("#toDrill", el).onclick = () => go("drill");
+    } else {
+      el.innerHTML = head + `<p class="small muted">${sub.queue.length} to review · ${known} learned</p>
+        <div class="flash${sub.flipped ? " back" : ""}" id="card" role="button" tabindex="0" aria-label="Tap to flip">
+          <span class="he" lang="he">${w[0]}</span>
+          ${sub.flipped ? `<span class="tr">${w[1]}</span><h2>${esc(w[2])}</h2>${w[3] ? `<p class="small muted">${esc(w[3])}</p>` : ""}<p class="small muted">Source: ${srcLink(w[4])}</p>` : `<span class="small muted">Tap to see the meaning</span>`}
+        </div>
+        ${sub.flipped ? `<div class="rate"><button class="btn ghost" data-r="0">Didn't know it</button><button class="btn" data-r="1">Knew it</button></div>` : ""}`;
+      const card = $("#card", el);
+      const flip = () => { if (!sub.flipped) { sub.flipped = true; render(); } };
+      card.onclick = e => { if (!e.target.closest("a")) flip(); };
+      card.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } };
+      el.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
+        const ok = b.dataset.r === "1", cur = S.boxes[w[0]]?.box || 0, box = ok ? Math.min(GAP.length - 1, cur + 1) : 0;
+        S.boxes[w[0]] = { box, due: ok ? Date.now() + GAP[box] * DAY - 3600e3 : Date.now() };
+        sub.queue.shift(); if (!ok) sub.queue.splice(Math.min(sub.queue.length, 3), 0, w);
+        sub.flipped = false; point(ok ? 1 : 0); save(); render();
+      });
+    }
+  }
+  el.querySelectorAll("[data-vm]").forEach(b => b.onclick = () => { sub.mode = b.dataset.vm; render(); });
+}
+
+/* ================= SOURCES VIEW ================= */
+function viewSources(el) {
+  el.innerHTML = `
+    <div><span class="eyebrow">Mekorot</span><h1>Sources</h1></div>
+    <p>Every stem form and vocabulary gloss in this app was checked against at least one of these references, and each one names its source. Words I couldn't confirm were left out.</p>
+    <div class="card" style="display:grid;gap:8px"><h3>Based on the Logos chart</h3>
+      <p class="small">The Stems tab follows the strong-verb grid of Logos's free ${srcLink("logos")}: the same stem order, sections, persons and alternate forms. Three deliberate differences:</p>
+      <ul class="src small"><li>Logos prints the forms without the dagesh. Here it's restored, because the doubled letter is how you spot the Piel, Pual and Hithpael (and the Niphal imperfect).</li>
+        <li>Logos prints the Hithpael perfect 1cs with a ת prefix (תִתְקַטַּלְתִּי); the correct form is הִתְקַטַּלְתִּי.</li>
+        <li>Logos prints the Niphal imperative mp with a ח (חִקָּטְלוּ); the correct form is הִקָּטְלוּ.</li></ul>
+      <p class="small muted">The chart's small stress marks are left out. English glosses are added by this app.</p></div>
+    <div class="card" style="display:grid;gap:10px"><h3>Stem paradigm</h3>
+      <p class="small muted">The paradigm uses the root ק־ט־ל, the standard model verb in grammars such as Pratico & Van Pelt. Where sources differ, the app follows the common textbook form and says so: the Hophal also appears with a u-vowel (הֻקְטַל), and the Pual and Hophal have no imperative or infinitive construct.</p>
+      <ul class="src">${["logos", "bbh12", "bbh26", "bbh30", "bbh33", "bbh34", "uhgS", "uhgN", "uhgP", "uhgH", "uhgT", "uhgI", "beck", "ginH", "crv"].map(k => `<li class="small">${srcLink(k)}</li>`).join("")}</ul></div>
+    <div class="card" style="display:grid;gap:10px"><h3>Vocabulary</h3>
+      <ul class="src">${["ginV", "ah14", "eheb", "hbr", "bhp", "bhq", "blb", "wpt", "firm", "bh3318", "bhv", "shes"].map(k => `<li class="small">${srcLink(k)}</li>`).join("")}</ul></div>
+    <p class="small muted">For deeper study, the standard references are a full grammar (Pratico & Van Pelt, Joüon–Muraoka, Waltke–O'Connor) and a lexicon (BDB, HALOT).</p>`;
+}
+
+go("stems");
+</script>

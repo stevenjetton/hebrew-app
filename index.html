@@ -66,10 +66,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--pre); outl
 .pill { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
 nav.tabs button { background: none; border: 0; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; font-size: 0.74rem; font-weight: 700; color: var(--muted); }
-nav.tabs button .he { font-size: 1.25rem; line-height: 1.2; }
+nav.tabs button .he { font-size: 1.1rem; line-height: 1.25; }
 nav.tabs button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
 
 main section { display: grid; gap: 16px; padding-block: 6px 24px; }
@@ -117,6 +117,12 @@ table.para td.on { background: var(--accent-soft); }
 .cellbtn { background: none; border: 0; padding: 4px 2px; border-radius: 8px; }
 .detail-he { font-size: 2rem; }
 .opts.pgn { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.stem-list { display: grid; gap: 10px; }
+.stem-item { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; padding: 12px 14px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }
+.stem-he { font-size: 1.5rem; color: var(--mark); text-align: center; }
+.bar { display: block; height: 6px; border-radius: 9px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--good); }
+.flash .big-he { font-size: 3rem; }
 select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 .wrapchips { display: flex; flex-wrap: wrap; gap: 8px; }
 .focus summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
@@ -148,6 +154,7 @@ ul.src { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 </div>
 <nav class="tabs" aria-label="Sections">
   <button data-tab="stems"><span class="he" lang="he">בִּנְיָנִים</span>Stems</button>
+  <button data-tab="cards"><span class="he" lang="he">כַּרְטִיסִים</span>Cards</button>
   <button data-tab="drill"><span class="he" lang="he">תַּרְגִּיל</span>Drill</button>
   <button data-tab="vocab"><span class="he" lang="he">מִלִּים</span>Vocab</button>
   <button data-tab="sources"><span class="he" lang="he">מְקוֹרוֹת</span>Sources</button>
@@ -381,8 +388,9 @@ async function flush() {
     const r = snap.exists ? snap.data() : null;
     if (r && r.state) {
       const remote = JSON.parse(r.state);
-      if (Object.keys(remote.boxes || {}).length >= Object.keys(S.boxes).length) { S = Object.assign(blank(), remote); render(); } else flush();
-    } else if (Object.keys(S.boxes).length) flush();
+      const size = x => Object.keys(x.boxes || {}).length + Object.keys(x.cards || {}).length;
+      if (size(remote) >= size(S)) { S = Object.assign(blank(), remote); render(); } else flush();
+    } else if (Object.keys(S.boxes).length || Object.keys(S.cards || {}).length) flush();
   } catch (e) {}
 })();
 function point(n) { S.days[today()] = (S.days[today()] || 0) + n; save(); pill(); }
@@ -402,7 +410,7 @@ function render() {
   pill();
   const v = $("#view"); v.innerHTML = "";
   const sec = document.createElement("section"); v.appendChild(sec);
-  ({ stems: viewStems, drill: viewDrill, vocab: viewVocab, sources: viewSources })[tab](sec);
+  ({ stems: viewStems, cards: viewCards, drill: viewDrill, vocab: viewVocab, sources: viewSources })[tab](sec);
 }
 
 /* ================= STEMS VIEW ================= */
@@ -613,6 +621,103 @@ function wireMatch(el) {
     render();
   });
   const n = $("#nextM", el); if (n) n.onclick = () => { const rows = matchRows(); const k = rows.findIndex(([c, p]) => c === M.cid && p === M.pi); sub.m = newMatch(rows[(k + 1) % rows.length]); render(); window.scrollTo(0, 0); };
+}
+
+/* ================= CARDS VIEW (one stem at a time) ================= */
+// Recognize cards group a stem's identical spellings (e.g. Qal imperfect 3fs = 2ms) into one card;
+// produce cards are one per chart cell. New cards come in chart order, a few per session.
+const NEW_PER_SESSION = 8;
+function stemDeck(si, dir) {
+  const cards = [];
+  CONJ.forEach(c => c.pgn.forEach((p, pi) => {
+    const a = cell(si, c.id, pi); if (!a) return;
+    if (dir === "produce") { cards.push({ key: `p:${si}|${c.id}|${pi}`, cells: [[c.id, pi]], word: a.join(" / ") }); return; }
+    const word = a.join(" / "), have = cards.find(x => x.word === word);
+    if (have) have.cells.push([c.id, pi]); else cards.push({ key: `r:${si}|${c.id}|${pi}`, cells: [[c.id, pi]], word });
+  }));
+  return cards;
+}
+const boxOf = k => S.cards?.[k]?.box || 0;
+const isNew = k => !S.cards?.[k];
+const isDue = k => S.cards?.[k] && S.cards[k].due <= Date.now();
+function deckStats(si, dir) {
+  const d = stemDeck(si, dir);
+  return { total: d.length, learned: d.filter(c => boxOf(c.key) >= 2).length, due: d.filter(c => isDue(c.key)).length, fresh: d.filter(c => isNew(c.key)).length };
+}
+const parseLabel = (cid, pi) => { const c = CONJ.find(x => x.id === cid); return `${c.name}${c.pgn[pi] ? " " + c.pgn[pi] : ""}`; };
+function viewCards(el) {
+  if (!S.cardDir) S.cardDir = "recognize";
+  const dir = S.cardDir;
+  if (sub.si === undefined) {
+    el.innerHTML = `
+      <div><span class="eyebrow">Kartisim · one stem at a time</span><h1>Cards</h1></div>
+      <p class="small">Learn each stem on its own before mixing them. Start with the Qal, and move on once most of its forms are learned.</p>
+      <div class="chips"><button class="chip" data-dir="recognize" aria-pressed="${dir === "recognize"}">Hebrew → parse</button><button class="chip" data-dir="produce" aria-pressed="${dir === "produce"}">Parse → Hebrew</button></div>
+      <div class="stem-list">${STEMS.map((s, si) => {
+        const st = deckStats(si, dir), pct = Math.round(st.learned / st.total * 100);
+        return `<button class="stem-item" data-si="${si}">
+          <span class="stem-he he" lang="he">${s.he}</span>
+          <span style="display:grid;gap:4px;min-width:0"><span><b>${s.name}</b> <span class="small muted">${esc(s.voice)}</span></span>
+            <span class="bar"><i style="width:${pct}%"></i></span>
+            <span class="small muted">${st.learned} of ${st.total} learned${st.due ? ` · <b style="color:var(--accent)">${st.due} due</b>` : ""}${st.fresh === st.total ? " · not started" : ""}</span></span>
+          <span class="muted">›</span></button>`;
+      }).join("")}</div>
+      <p class="small muted">A card counts as learned once you've known it twice in a row. Cards you miss come back the same session.</p>`;
+    el.querySelectorAll("[data-dir]").forEach(b => b.onclick = () => { S.cardDir = b.dataset.dir; save(); render(); });
+    el.querySelectorAll("[data-si]").forEach(b => b.onclick = () => { sub = { si: +b.dataset.si }; render(); window.scrollTo(0, 0); });
+    return;
+  }
+  const si = sub.si, s = STEMS[si];
+  if (!sub.queue) {
+    const deck = stemDeck(si, dir);
+    sub.queue = [...shuffle(deck.filter(c => isDue(c.key))), ...deck.filter(c => isNew(c.key)).slice(0, NEW_PER_SESSION)];
+    sub.done = 0; sub.flipped = false;
+  }
+  const st = deckStats(si, dir);
+  const head = `
+    <div class="row between"><button class="linkbtn" id="toStems">‹ All stems</button><span class="small muted">${st.learned} of ${st.total} learned</span></div>
+    <div class="stem-head"><div><h2>${s.name}</h2><span class="muted">${esc(s.voice)}</span></div><span class="he" lang="he">${s.he}</span></div>`;
+  const c = sub.queue[0];
+  if (!c) {
+    el.innerHTML = head + `
+      <div class="card" style="display:grid;gap:10px;justify-items:center;text-align:center;padding-block:28px">
+        <h2>${sub.done ? "Session done" : "Nothing due"}</h2>
+        <p class="muted">${sub.done ? `You reviewed ${sub.done} card${sub.done > 1 ? "s" : ""}. ` : ""}${st.fresh ? `${st.fresh} new ${s.name} forms are still waiting.` : `You've seen every ${s.name} form. Missed ones come back when they're due.`}</p>
+        <div class="row" style="justify-content:center">${st.fresh ? `<button class="btn" id="more">Learn ${Math.min(NEW_PER_SESSION, st.fresh)} more</button>` : ""}<button class="btn ghost" id="all">Review all ${st.total}</button></div>
+      </div>
+      <div class="card" style="display:grid;gap:8px"><h3>How to spot the ${s.name}</h3><p class="small">${heInline(s.marks)}</p>${LEGEND}</div>`;
+    $("#toStems", el).onclick = () => { sub = {}; render(); };
+    const more = $("#more", el); if (more) more.onclick = () => { sub.queue = stemDeck(si, dir).filter(x => isNew(x.key)).slice(0, NEW_PER_SESSION); sub.done = 0; render(); };
+    $("#all", el).onclick = () => { sub.queue = shuffle(stemDeck(si, dir).filter(x => !isNew(x.key))); if (!sub.queue.length) sub.queue = stemDeck(si, dir).slice(0, NEW_PER_SESSION); sub.done = 0; render(); };
+    return;
+  }
+  const [cid0, pi0] = c.cells[0];
+  const labels = c.cells.map(([cid, pi]) => parseLabel(cid, pi));
+  const front = dir === "recognize"
+    ? `<span class="eyebrow">What form is this?</span><span class="he big-he" lang="he">${c.word}</span>`
+    : `<span class="eyebrow">Write the Hebrew</span><h2>${s.name} ${esc(labels[0].toLowerCase())}</h2><span class="muted">“${esc(gloss(si, cid0, pi0))}”</span>`;
+  const back = dir === "recognize"
+    ? `${formHTML(si, cid0, pi0, "big-he")}<h3>${labels.map(esc).join(" or ")}</h3><span class="muted">“${c.cells.map(([cid, pi]) => esc(gloss(si, cid, pi))).filter((g, i, a) => a.indexOf(g) === i).join("” or “")}”</span>`
+    : `${formHTML(si, cid0, pi0, "big-he")}<span class="muted">${esc(labels[0])} · “${esc(gloss(si, cid0, pi0))}”</span>`;
+  el.innerHTML = head + `
+    <p class="small muted">${sub.queue.length} to go${isNew(c.key) ? " · new card" : ""}</p>
+    <div class="flash${sub.flipped ? " back" : ""}" id="card" role="button" tabindex="0" aria-label="Tap to flip">
+      ${sub.flipped ? back : front + `<span class="small muted">Tap to check</span>`}
+    </div>
+    ${sub.flipped ? `${LEGEND}<div class="rate"><button class="btn ghost" data-r="0">Didn't know it</button><button class="btn" data-r="1">Knew it</button></div>` : ""}`;
+  $("#toStems", el).onclick = () => { sub = {}; render(); };
+  const card = $("#card", el);
+  const flip = () => { if (!sub.flipped) { sub.flipped = true; render(); } };
+  card.onclick = flip;
+  card.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } };
+  el.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
+    const ok = b.dataset.r === "1", box = ok ? Math.min(GAP.length - 1, boxOf(c.key) + 1) : 0;
+    if (!S.cards) S.cards = {};
+    S.cards[c.key] = { box, due: ok ? Date.now() + GAP[box] * DAY - 3600e3 : Date.now() };
+    sub.queue.shift(); sub.done++;
+    if (!ok) sub.queue.splice(Math.min(sub.queue.length, 3), 0, c);
+    sub.flipped = false; point(ok ? 1 : 0); save(); render();
+  });
 }
 
 /* ================= VOCAB VIEW ================= */

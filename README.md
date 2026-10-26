@@ -7,4 +7,16 @@ A phone-friendly app for relearning the Biblical Hebrew verb stems (binyanim) an
 - **Drill:** parse forms or match stems, with a focus control to isolate any stems and forms.
 - **Vocab:** high-frequency words with flashcards; every gloss names the source it was checked against.
 
-Open `index.html` in a browser. It runs best as a Claude artifact, where progress saves to your account.
+## Install on your phone
+
+This is an installable web app (PWA) hosted with GitHub Pages at **https://stevenjetton.github.io/hebrew-app/**.
+
+1. Open that address in Safari (iPhone) or Chrome (Android).
+2. iPhone: tap **Share → Add to Home Screen**. Android: tap **⋮ → Install app**.
+3. Open it from the new icon. It runs full-screen and works offline after the first visit.
+
+Progress is saved on the phone. The same app also runs as a Claude artifact, where progress saves to your claude.ai account instead.
+
+## Updating
+
+`index.html` is the artifact page wrapped in a standalone document. When it changes, also change `VERSION` in `sw.js` so installed copies download the new version.

@@ -123,6 +123,8 @@ table.para td.on { background: var(--accent-soft); }
 .bar { display: block; height: 6px; border-radius: 9px; background: var(--surface-2); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--good); }
 .flash .big-he { font-size: 3rem; }
+.cue { display: grid; gap: 4px; background: var(--surface-2); border-radius: var(--r); padding: 10px 14px; }
+.cue .he { font-size: 1.15rem; }
 select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
 .wrapchips { display: flex; flex-wrap: wrap; gap: 8px; }
 .focus summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
@@ -644,6 +646,16 @@ function deckStats(si, dir) {
   const d = stemDeck(si, dir);
   return { total: d.length, learned: d.filter(c => boxOf(c.key) >= 2).length, due: d.filter(c => isDue(c.key)).length, fresh: d.filter(c => isNew(c.key)).length };
 }
+// What to look for in each stem, with the marker colored the same way as the forms.
+const STEM_CUE = {
+  qal: `No stem marker at all: just the root, with person/number pieces in <span class="p">gold</span>. Example: <span class="he" lang="he"><span class="p">יִ</span>קְטֹל</span>.`,
+  niphal: `A <span class="m">נִ</span> prefix, or, after a prefix, the first root letter <span class="m">doubled</span>. Examples: <span class="he" lang="he"><span class="m">נִ</span>קְטַל</span>, <span class="he" lang="he"><span class="p">יִ</span><span class="m">קָּ</span>טֵל</span>.`,
+  piel: `The middle root letter <span class="m">doubled</span> (dagesh). Example: <span class="he" lang="he">קִ<span class="m">טֵּ</span>ל</span>; participle with <span class="m">מְ</span>.`,
+  pual: `The middle root letter <span class="m">doubled</span>, with a u-vowel under the first. Example: <span class="he" lang="he">קֻ<span class="m">טַּ</span>ל</span>.`,
+  hiphil: `A <span class="m">הִ / הַ / מַ</span> prefix and a <span class="m">ִי</span> before the last root letter. Example: <span class="he" lang="he"><span class="m">הִ</span>קְטִ<span class="m">י</span>ל</span>.`,
+  hophal: `An o-vowel under a <span class="m">הָ / מָ</span> prefix. Example: <span class="he" lang="he"><span class="m">הָ</span>קְטַל</span>.`,
+  hithpael: `A <span class="m">הִתְ</span> prefix (<span class="m">תְ</span> after a person prefix) plus the middle letter <span class="m">doubled</span>. Example: <span class="he" lang="he"><span class="m">הִתְ</span>קַ<span class="m">טֵּ</span>ל</span>.`
+};
 const parseLabel = (cid, pi) => { const c = CONJ.find(x => x.id === cid); return `${c.name}${c.pgn[pi] ? " " + c.pgn[pi] : ""}`; };
 function viewCards(el) {
   if (!S.cardDir) S.cardDir = "recognize";
@@ -676,7 +688,9 @@ function viewCards(el) {
   const st = deckStats(si, dir);
   const head = `
     <div class="row between"><button class="linkbtn" id="toStems">‹ All stems</button><span class="small muted">${st.learned} of ${st.total} learned</span></div>
-    <div class="stem-head"><div><h2>${s.name}</h2><span class="muted">${esc(s.voice)}</span></div><span class="he" lang="he">${s.he}</span></div>`;
+    <div class="stem-head"><div><h2>${s.name}</h2><span class="muted">${esc(s.voice)}</span></div><span class="he" lang="he">${s.he}</span></div>
+    <div class="cue"><span class="eyebrow">Look for</span><p class="small">${STEM_CUE[s.id]}</p></div>
+    <div class="row between"><span class="small muted">Colors on the front of the card</span><button class="chip" id="colorToggle" aria-pressed="${S.cardColor !== false}">${S.cardColor !== false ? "On" : "Off"}</button></div>`;
   const c = sub.queue[0];
   if (!c) {
     el.innerHTML = head + `
@@ -687,6 +701,7 @@ function viewCards(el) {
       </div>
       <div class="card" style="display:grid;gap:8px"><h3>How to spot the ${s.name}</h3><p class="small">${heInline(s.marks)}</p>${LEGEND}</div>`;
     $("#toStems", el).onclick = () => { sub = {}; render(); };
+    $("#colorToggle", el).onclick = () => { S.cardColor = S.cardColor === false; save(); render(); };
     const more = $("#more", el); if (more) more.onclick = () => { sub.queue = stemDeck(si, dir).filter(x => isNew(x.key)).slice(0, NEW_PER_SESSION); sub.done = 0; render(); };
     $("#all", el).onclick = () => { sub.queue = shuffle(stemDeck(si, dir).filter(x => !isNew(x.key))); if (!sub.queue.length) sub.queue = stemDeck(si, dir).slice(0, NEW_PER_SESSION); sub.done = 0; render(); };
     return;
@@ -694,7 +709,7 @@ function viewCards(el) {
   const [cid0, pi0] = c.cells[0];
   const labels = c.cells.map(([cid, pi]) => parseLabel(cid, pi));
   const front = dir === "recognize"
-    ? `<span class="eyebrow">What form is this?</span><span class="he big-he" lang="he">${c.word}</span>`
+    ? `<span class="eyebrow">What form is this?</span>${S.cardColor !== false ? formHTML(si, cid0, pi0, "big-he") : `<span class="he big-he" lang="he">${c.word}</span>`}`
     : `<span class="eyebrow">Write the Hebrew</span><h2>${s.name} ${esc(labels[0].toLowerCase())}</h2><span class="muted">“${esc(gloss(si, cid0, pi0))}”</span>`;
   const back = dir === "recognize"
     ? `${formHTML(si, cid0, pi0, "big-he")}<h3>${labels.map(esc).join(" or ")}</h3><span class="muted">“${c.cells.map(([cid, pi]) => esc(gloss(si, cid, pi))).filter((g, i, a) => a.indexOf(g) === i).join("” or “")}”</span>`
@@ -704,8 +719,10 @@ function viewCards(el) {
     <div class="flash${sub.flipped ? " back" : ""}" id="card" role="button" tabindex="0" aria-label="Tap to flip">
       ${sub.flipped ? back : front + `<span class="small muted">Tap to check</span>`}
     </div>
-    ${sub.flipped ? `${LEGEND}<div class="rate"><button class="btn ghost" data-r="0">Didn't know it</button><button class="btn" data-r="1">Knew it</button></div>` : ""}`;
+    ${LEGEND}
+    ${sub.flipped ? `<div class="rate"><button class="btn ghost" data-r="0">Didn't know it</button><button class="btn" data-r="1">Knew it</button></div>` : ""}`;
   $("#toStems", el).onclick = () => { sub = {}; render(); };
+  $("#colorToggle", el).onclick = () => { S.cardColor = S.cardColor === false; save(); render(); };
   const card = $("#card", el);
   const flip = () => { if (!sub.flipped) { sub.flipped = true; render(); } };
   card.onclick = flip;

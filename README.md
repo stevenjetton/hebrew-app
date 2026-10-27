@@ -6,6 +6,11 @@ A phone-friendly app for relearning the Biblical Hebrew verb stems (binyanim) an
 - **Cards:** flashcards for one stem at a time, recognizing forms (Hebrew → parse) or producing them (parse → Hebrew), with spaced review and per-stem progress.
 - **Drill:** parse forms or match stems, with a focus control to isolate any stems and forms.
 - **Vocab:** high-frequency words with flashcards; every gloss names the source it was checked against.
+- **Bible:** read the Hebrew Bible book by book, one narrative episode at a time (starting with Genesis 1:1–2:4a). Every word piece in a verse is a flashcard; once each has been learned, the verse unlocks with tap-for-meaning parsing and a literal translation.
+
+## Bible text
+
+The Hebrew text is the Leningrad Codex as printed in BHS, taken with its glosses, lexical forms and parsing from [STEPBible's TAHOT and TBESH](https://github.com/STEPBible/STEPBible-Data) (Tyndale House Cambridge, CC BY 4.0). Changes: cantillation is hidden by default, Genesis 2:4 is split at the atnach, senses of one lexeme share a card, glosses are shortened, and the translation is the app's own.
 
 ## Install on your phone
 

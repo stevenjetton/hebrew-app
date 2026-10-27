@@ -10,7 +10,7 @@ A phone-friendly app for relearning the Biblical Hebrew verb stems (binyanim) an
 
 ## Bible text
 
-The Hebrew text is the Leningrad Codex as printed in BHS, taken with its glosses, lexical forms and parsing from [STEPBible's TAHOT and TBESH](https://github.com/STEPBible/STEPBible-Data) (Tyndale House Cambridge, CC BY 4.0). Changes: cantillation is hidden by default, Genesis 2:4 is split at the atnach, senses of one lexeme share a card, glosses are shortened, and the translation is the app's own.
+The Hebrew text is the Leningrad Codex as printed in BHS, taken with its glosses, lexical forms and parsing from [STEPBible's TAHOT and TBESH](https://github.com/STEPBible/STEPBible-Data) (Tyndale House Cambridge, CC BY 4.0). Each word also shows its Brown–Driver–Briggs entry and page (public domain, from the [Open Scriptures digital BDB](https://github.com/openscriptures/HebrewLexicon)), and a button copies the dictionary form for looking it up in HALOT in Logos (HALOT is licensed and can't be included). Changes: cantillation is hidden by default, Genesis 2:4 is split at the atnach, senses of one lexeme share a card, glosses are shortened, and the translation is the app's own.
 
 ## Install on your phone
 

@@ -162,6 +162,14 @@ select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 12px; bo
 .vocab-row:last-child { border-bottom: 0; }
 ul.src { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 @media (prefers-reduced-motion: no-preference) { .slot, .chip, .opt { transition: background .15s, border-color .15s; } }
+
+/* Dark mode: pastel highlights blend into the light text, so use brighter, more saturated colors. */
+@media (prefers-color-scheme: dark) {
+:root:not([data-theme="light"]) .m { color: #ff5c86; text-shadow: 0 0 1px currentColor; }
+:root:not([data-theme="light"]) .p { color: #ffc933; text-shadow: 0 0 1px currentColor; }
+}
+:root[data-theme="dark"] .m { color: #ff5c86; text-shadow: 0 0 1px currentColor; }
+:root[data-theme="dark"] .p { color: #ffc933; text-shadow: 0 0 1px currentColor; }
 </style>
 
 <div class="wrap">

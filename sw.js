@@ -11,9 +11,10 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   const font = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
   if (url.origin !== location.origin && !font) return;
-  // The page itself: network first so updates arrive, cache when offline.
+  // The page itself: network first so updates arrive, cache when offline. "no-cache" makes the browser check
+  // with the server instead of reusing its own copy (GitHub Pages lets it keep one for 10 minutes).
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put("index.html", copy)); return r; }).catch(() => caches.match("index.html")));
+    e.respondWith(fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put("index.html", copy)); return r; }).catch(() => caches.match("index.html")));
     return;
   }
   // Everything else (icons, fonts): cache first, fill the cache on first use.

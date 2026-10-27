@@ -1,5 +1,5 @@
 // Bump VERSION whenever index.html changes so phones pick up the new app.
-const VERSION = "v-3f75106cff";
+const VERSION = "v-81a695f574";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

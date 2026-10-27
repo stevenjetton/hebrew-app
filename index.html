@@ -76,6 +76,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--pre); outl
 .tr { font-family: var(--font-display); font-style: italic; }
 .m { color: var(--mark); font-weight: 700; }
 .p { color: var(--pre); font-weight: 700; }
+.hx { position: relative; display: inline-block; }
+.hx span { font-weight: inherit; }
+.hx-top { position: absolute; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; white-space: nowrap; }
 
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; }
@@ -329,33 +332,47 @@ function gloss(si, cid, pi) {
 }
 
 /* Color each form: red = stem marker, gold = person/number prefix or ending (and waw), plain = the root ק ט ל */
+// Colors each part of a form: stem markers (k "m"), person/number prefixes and endings ("p"), the root plain.
+// A vowel point or dagesh can mark the stem even when its letter belongs to the root or the person prefix
+// (the dagesh in Piel קִטֵּל, the patah under Hiphil's prefix in יַקְטִיל), so the points get their own color.
+// Browsers can't reliably color a point apart from its letter, so such words are drawn twice in the same
+// spot: the full pointed word colored by its points underneath, and the bare letters colored on top.
+const POINTS = /[\u0591-\u05C7]/g;
 function colorForm(word, si, cid) {
   const cl = word.match(/[א-ת][֑-ׇ]*/g) || [word];
   const base = cl.map(c => c[0]);
   const q = base.indexOf("ק"), t = base.indexOf("ט", q + 1), l = base.lastIndexOf("ל");
   const sid = STEMS[si].id, doubled = ["piel", "pual", "hithpael"].includes(sid);
-  return cl.map((c, i) => {
-    let k = "";
+  const parts = cl.map((c, i) => {
+    let k = "", pk = null; // pk: color of the points when it differs from the letter's
+    const dagesh = c.includes("ּ");
     if (q < 0 || t < 0 || l < 0) k = "";
     else if (i < q) {
       const w = base[0] === "ו" ? 1 : 0;
       if (i < w) k = "p";
-      else if (PREFIXED.includes(cid) && i === w) k = "p";
+      else if (PREFIXED.includes(cid) && i === w) { k = "p"; if (["piel", "pual", "hiphil", "hophal"].includes(sid)) pk = "m"; } // the prefix vowel marks the stem
       else k = "m";
     }
     else if (i > l) k = "p";
-    else if (i === t && doubled && c.includes("ּ")) k = "m";
-    else if (i === q && sid === "niphal" && c.includes("ּ")) k = "m";
+    else if (i === t && doubled && dagesh) pk = "m";                          // doubled middle letter
+    else if (i === q && sid === "niphal" && dagesh) pk = "m";                 // Niphal: doubled first letter
+    else if (i === q && ["piel", "pual", "hithpael"].includes(sid)) pk = "m"; // their vowel under the first letter
+    else if (i === t && sid === "hiphil" && base[i + 1] === "י") pk = "m";    // the i-vowel before Hiphil's yod
     else if (i > t && i < l && sid === "hiphil") k = "m";
-    return k ? `<span class="${k}">${c}</span>` : c;
-  }).join("");
+    return { c, k, pk: pk && c.length > 1 && pk !== k ? pk : null };
+  });
+  const wrap = (k, x) => k ? `<span class="${k}">${x}</span>` : x;
+  if (!parts.some(x => x.pk)) return parts.map(x => wrap(x.k, x.c)).join("");
+  const under = parts.map(x => wrap(x.pk || x.k, x.c)).join("");
+  const over = parts.map(x => wrap(x.k, x.c.replace(POINTS, ""))).join("");
+  return `<span class="hx">${under}<span class="hx-top" aria-hidden="true">${over}</span></span>`;
 }
 function formHTML(si, cid, pi, size) {
   const alts = cell(si, cid, pi);
   if (!alts) return `<span class="na">—</span>`;
   return `<span class="he${size ? " " + size : ""}" lang="he">${alts.map(a => colorForm(a, si, cid)).join(" / ")}</span>`;
 }
-const LEGEND = `<div class="legend"><span><span class="m">■</span> stem marker</span><span><span class="p">■</span> person/number prefix or ending</span><span>plain = the root ק ט ל</span></div>`;
+const LEGEND = `<div class="legend"><span><span class="m">■</span> stem marker (letter, vowel or dagesh)</span><span><span class="p">■</span> person/number prefix or ending</span><span>plain = the root ק ט ל</span></div>`;
 // Every (stem, form, person) that spells this word, so shared forms count as right either way.
 function sameAs(word) {
   const out = [];
@@ -672,14 +689,15 @@ function deckStats(si, dir) {
   return { total: d.length, learned: d.filter(c => boxOf(c.key) >= 2).length, due: d.filter(c => isDue(c.key)).length, fresh: d.filter(c => isNew(c.key)).length };
 }
 // What to look for in each stem, with the marker colored the same way as the forms.
+const cueWord = (w, sid, cid) => `<span class="he" lang="he">${colorForm(w, STEMS.findIndex(s => s.id === sid), cid)}</span>`;
 const STEM_CUE = {
-  qal: `No stem marker at all: just the root, with person/number pieces in <span class="p">gold</span>. Example: <span class="he" lang="he"><span class="p">יִ</span>קְטֹל</span>.`,
-  niphal: `A <span class="m">נִ</span> prefix, or, after a prefix, the first root letter <span class="m">doubled</span>. Examples: <span class="he" lang="he"><span class="m">נִ</span>קְטַל</span>, <span class="he" lang="he"><span class="p">יִ</span><span class="m">קָּ</span>טֵל</span>.`,
-  piel: `The middle root letter <span class="m">doubled</span> (dagesh). Example: <span class="he" lang="he">קִ<span class="m">טֵּ</span>ל</span>; participle with <span class="m">מְ</span>.`,
-  pual: `The middle root letter <span class="m">doubled</span>, with a u-vowel under the first. Example: <span class="he" lang="he">קֻ<span class="m">טַּ</span>ל</span>.`,
-  hiphil: `A <span class="m">הִ / הַ / מַ</span> prefix and a <span class="m">ִי</span> before the last root letter. Example: <span class="he" lang="he"><span class="m">הִ</span>קְטִ<span class="m">י</span>ל</span>.`,
-  hophal: `An o-vowel under a <span class="m">הָ / מָ</span> prefix. Example: <span class="he" lang="he"><span class="m">הָ</span>קְטַל</span>.`,
-  hithpael: `A <span class="m">הִתְ</span> prefix (<span class="m">תְ</span> after a person prefix) plus the middle letter <span class="m">doubled</span>. Example: <span class="he" lang="he"><span class="m">הִתְ</span>קַ<span class="m">טֵּ</span>ל</span>.`
+  qal: `No stem marker at all: just the root, with person/number pieces in <span class="p">gold</span>. Example: ${cueWord("יִקְטֹל", "qal", "impf")}.`,
+  niphal: `A <span class="m">נִ</span> prefix, or, after a prefix, a <span class="m">dagesh</span> doubling the first root letter. Examples: ${cueWord("נִקְטַל", "niphal", "perf")}, ${cueWord("יִקָּטֵל", "niphal", "impf")}.`,
+  piel: `A <span class="m">dagesh</span> doubling the middle root letter, an i- or a-vowel under the first, and a shewa under any person prefix. Examples: ${cueWord("קִטֵּל", "piel", "perf")}, ${cueWord("יְקַטֵּל", "piel", "impf")}; participle with <span class="m">מְ</span>.`,
+  pual: `A <span class="m">dagesh</span> doubling the middle root letter, with a <span class="m">u-vowel</span> under the first. Examples: ${cueWord("קֻטַּל", "pual", "perf")}, ${cueWord("יְקֻטַּל", "pual", "impf")}.`,
+  hiphil: `A <span class="m">הִ / הַ / מַ</span> prefix (an a-vowel under any person prefix) and <span class="m">ִי</span> before the last root letter. Examples: ${cueWord("הִקְטִיל", "hiphil", "perf")}, ${cueWord("יַקְטִיל", "hiphil", "impf")}.`,
+  hophal: `An <span class="m">o-vowel</span> under the <span class="m">הָ / מָ</span> prefix or the person prefix. Examples: ${cueWord("הָקְטַל", "hophal", "perf")}, ${cueWord("יָקְטַל", "hophal", "impf")}.`,
+  hithpael: `A <span class="m">הִתְ</span> prefix (<span class="m">תְ</span> after a person prefix), an a-vowel under the first root letter, and a <span class="m">dagesh</span> doubling the middle one. Example: ${cueWord("הִתְקַטֵּל", "hithpael", "perf")}.`
 };
 const parseLabel = (cid, pi) => { const c = CONJ.find(x => x.id === cid); return `${c.name}${c.pgn[pi] ? " " + c.pgn[pi] : ""}`; };
 function viewCards(el) {

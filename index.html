@@ -135,6 +135,9 @@ table.para tbody th { font-size: 0.78rem; color: var(--muted); text-align: left;
 table.para td .he { font-size: 1.35rem; }
 table.para td.on { background: var(--accent-soft); }
 .cellbtn { background: none; border: 0; padding: 4px 2px; border-radius: 8px; }
+.pop { position: fixed; z-index: 20; display: grid; gap: 6px; padding: 16px 16px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.28); }
+.pop-x { position: absolute; top: 4px; right: 6px; width: 36px; height: 36px; border: 0; background: none; color: var(--muted); font-size: 1.5rem; line-height: 1; }
+.pop > .row { padding-right: 28px; }
 .detail-he { font-size: 2rem; }
 .opts.pgn { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
 .stem-list { display: grid; gap: 10px; }
@@ -486,7 +489,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 
 /* ================= ROUTER ================= */
 let tab = "stems", sub = {};
-function go(t) { tab = t; sub = {}; document.querySelectorAll("nav.tabs button").forEach(b => b.dataset.tab === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")); render(); window.scrollTo(0, 0); }
+function go(t) { document.querySelectorAll(".pop").forEach(p => p.remove()); tab = t; sub = {}; document.querySelectorAll("nav.tabs button").forEach(b => b.dataset.tab === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")); render(); window.scrollTo(0, 0); }
 document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => go(b.dataset.tab));
 function render() {
   pill();
@@ -516,13 +519,13 @@ function viewStems(el) {
     body = `
       <div class="chips">${SECTIONS.map(([n], i) => `<button class="chip" data-sec="${i}" aria-pressed="${i === sub.sec}">${n}</button>`).join("")}</div>
       ${LEGEND}
+      <p class="small muted" style="margin:0">Tap any form to see what it means and how it's built.</p>
       <div class="tablewrap"><table class="para">
         <thead><tr><th></th>${STEMS.map(s => `<th>${s.name}</th>`).join("")}</tr></thead>
         <tbody>${rows.map(([cid, pi, p]) => `<tr><th>${cids.length > 1 ? CONJ_SHORT[cid] + (p ? " " + p : "") : p}</th>${STEMS.map((s, si) => {
           const on = sub.d && sub.d[0] === si && sub.d[1] === cid && sub.d[2] === pi;
           return `<td${on ? ' class="on"' : ""}>${cell(si, cid, pi) ? `<button class="cellbtn" data-cell="${si},${cid},${pi}">${formHTML(si, cid, pi)}</button>` : `<span class="na">—</span>`}</td>`;
-        }).join("")}</tr>`).join("")}</tbody></table></div>
-      <div class="card detail">${detailHTML(sub.d)}</div>`;
+        }).join("")}</tr>`).join("")}</tbody></table></div>`;
   } else {
     const st = STEMS[sub.stem];
     body = `
@@ -543,8 +546,45 @@ function viewStems(el) {
   el.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { sub.mode = b.dataset.mode; render(); });
   el.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { sub.sec = +b.dataset.sec; sub.d = null; render(); });
   el.querySelectorAll("[data-stem]").forEach(b => b.onclick = () => { sub.stem = +b.dataset.stem; render(); });
-  el.querySelectorAll("[data-cell]").forEach(b => b.onclick = () => { const [si, cid, pi] = b.dataset.cell.split(","); sub.d = [+si, cid, +pi]; const y = window.scrollY; render(); window.scrollTo(0, y); });
+  // Tapping a form opens a popover beside it, without redrawing the chart (so its sideways scroll stays put).
+  el.querySelectorAll("[data-cell]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const [si, cid, pi] = b.dataset.cell.split(","), same = sub.d && sub.d.join() === [+si, cid, +pi].join();
+    closePop();
+    if (same) return;
+    sub.d = [+si, cid, +pi];
+    b.parentElement.classList.add("on");
+    openPop(b, detailHTML(sub.d));
+  });
+  const tw = $(".tablewrap", el); if (tw) tw.addEventListener("scroll", () => popScrolled(tw.scrollLeft, 1), { passive: true });
 }
+// A small card floating next to the tapped element; tap outside, a real scroll, or × closes it.
+let popAt = null; // [page scroll, table scroll] when it opened, so small nudges don't close it
+function popScrolled(v, i) { if (popAt && Math.abs(v - popAt[i]) > 30) closePop(); }
+function closePop() {
+  popAt = null;
+  document.querySelectorAll(".pop").forEach(p => p.remove());
+  document.querySelectorAll("table.para td.on").forEach(td => td.classList.remove("on"));
+  if (sub) sub.d = null;
+}
+function openPop(anchor, html) {
+  const pop = document.createElement("div");
+  pop.className = "pop card detail"; pop.setAttribute("role", "dialog");
+  pop.innerHTML = `<button class="pop-x" aria-label="Close">×</button>${html}`;
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, w = Math.min(380, vw - 32);
+  const navTop = ($("nav.tabs") || { getBoundingClientRect: () => ({ top: innerHeight }) }).getBoundingClientRect().top;
+  pop.style.width = w + "px";
+  pop.style.left = Math.max(16, Math.min(vw - w - 16, r.left + r.width / 2 - w / 2)) + "px";
+  const h = pop.offsetHeight, below = r.bottom + 8;
+  pop.style.top = (below + h <= navTop - 8 || r.top - h - 8 < 8 ? Math.min(below, navTop - h - 8) : r.top - h - 8) + "px";
+  pop.querySelector(".pop-x").onclick = closePop;
+  const tw = anchor.closest(".tablewrap");
+  popAt = [window.scrollY, tw ? tw.scrollLeft : 0];
+  pop.onclick = e => e.stopPropagation();
+}
+document.addEventListener("click", () => { if (document.querySelector(".pop")) closePop(); });
+window.addEventListener("scroll", () => popScrolled(window.scrollY, 0), { passive: true });
 
 /* ================= DRILL VIEW ================= */
 // Focus narrows what the drill asks: which stems, which forms, and whether to name the stem, the form, or both.

@@ -777,7 +777,10 @@ function viewVocab(el) {
     const w = sub.queue[0];
     if (!w) {
       el.innerHTML = head + `<div class="card" style="display:grid;gap:10px;text-align:center;justify-items:center;padding-block:32px"><h2>All caught up</h2>
-        <p class="muted">Every word is scheduled for later. Come back tomorrow, or drill the stems.</p><button class="btn" id="toDrill">Go to the drill</button></div>`;
+        <p class="muted">Every word is scheduled for later. You can review ahead now, or drill the stems.</p>
+        <div class="row" style="justify-content:center"><button class="btn" id="aheadV">Review ahead (${Math.min(20, VOCAB.length)})</button><button class="btn ghost" id="toDrill">Go to the drill</button></div></div>`;
+      // Study ahead: the words coming due soonest first.
+      $("#aheadV", el).onclick = () => { sub.queue = VOCAB.slice().sort((a, b) => (S.boxes[a[0]]?.due || 0) - (S.boxes[b[0]]?.due || 0)).slice(0, 20); sub.flipped = false; render(); };
       $("#toDrill", el).onclick = () => go("drill");
     } else {
       el.innerHTML = head + `<p class="small muted">${sub.queue.length} to review · ${known} learned</p>
